@@ -1,0 +1,26 @@
+---
+- name: Patching the existing packages to the latest version
+  hosts: all
+  become: yes
+  vars_files: 
+    - creds
+  tasks:
+    - name: Check the register with Redhat Subscription
+      shell: subscription-manager status
+      register: sub_status
+      ignore_errors: yes
+
+    - debug:
+        msg: "Server already registered with Redhat subscription"
+      when: sub_status.rc == 0
+
+    - name: Register the server with Redhat subscription if not registered
+      redhat.rhel_system_roles.redhat_subscription:
+        username: "{{ redhat_username }}"
+        password: "{{ redhat_password }}"
+      register: reg_status
+      when: sub_status.rc != 0
+
+    - debug:
+        var: reg_status.msg
+      when: sub_status.rc != 0
