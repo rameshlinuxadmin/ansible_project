@@ -1,16 +1,15 @@
 ---
-- name: Taking server prechecks before patching
+- name: Taking server postchecks before patching
   hosts: all
   become: yes
   vars_prompt: 
     - name: Change_Number
       prompt: Change Number
       private: No
-
+    
     - name: Admin_Name
       prompt: Admin Name
       private: No
-
   tasks:
     - name: Change information
       debug:
@@ -18,7 +17,7 @@
 
     - name: Create log directory for the server
       file:
-        path: /var/log/prechecks/{{ Change_Number }}
+        path: /var/log/postchecks/{{ Change_Number }}
         owner: student
         mode: 0755
         state: directory
@@ -61,15 +60,15 @@
       shell: swapon -s 
       register: swap_out
 
-    - name: Writing prechecks file in master server
+    - name: Writing postchecks file in master server
       copy: 
-          dest: /var/log/prechecks/{{ Change_Number }}/{{ ansible_hostname }}.log
+          dest: /var/log/postchecks/{{ Change_Number }}/{{ ansible_hostname }}.log
           content: | 
             Change information -
             Number :- {{ Change_Number }}
             Performed By :- {{ Admin_Name }}
             ======================================
-            Prechecks output of {{ ansible_hostname }} at {{ ansible_date_time.time }}
+            Postchecks output of {{ ansible_hostname }} at {{ ansible_date_time.time }}
             ======================================
             Hostname -  {{ ansible_hostname }}
             ======================================
