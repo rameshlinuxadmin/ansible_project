@@ -1,0 +1,90 @@
+---
+- name: Taking server prechecks before patching
+  hosts: all
+  become: yes
+  vars_prompt: 
+    - name: Change_Number
+      prompt: Change Number
+      private: No
+  tasks:
+    #- name: "{{ Change_Number }}" Taking server prechecks before patching
+
+    - name: Create log directory for the server
+      file:
+        path: /var/log/prechecks/{{ ansible_hostname }}
+        owner: student
+        mode: 0755
+        state: directory
+      delegate_to: localhost
+      register: logdir
+
+    - name: OS and Kernel Version check
+      shell: cat /etc/redhat-release ; uname -r
+      register: kernel_out
+
+    - name: uptime
+      shell: uptime 
+      register: uptime_out
+
+    - name: Filesystem check
+      shell: df -h 
+      register: fs_out
+
+    - name: Fstab entries
+      shell:  cat /etc/fstab
+      register: fstab_out
+
+    - name: Running services
+      shell:  systemctl -a | grep -i running
+      register: service_out
+
+    - name: Network IP Configuration 
+      shell: ip a 
+      register: ip_out
+
+    - name: Netstat output
+      shell: netstat -arn
+      register: netstat_out
+
+    - name: Memory information
+      shell: free -h 
+      register: mem_out
+
+    - name: Swap information
+      shell: swapon -s 
+      register: swap_out
+
+    - name: Writing prechecks file in master server
+      copy: 
+          dest: /var/log/prechecks/{{ ansible_hostname }}/{{ Change_Number }}
+          content: | 
+            Prechecks output of {{ ansible_hostname }} at {{ ansible_date_time.time }}
+            ======================================
+            Hostname -  {{ ansible_hostname }}
+            ======================================
+            Kernel - {{ kernel_out.stdout }}
+            ======================================
+            Uptime - {{ uptime_out.stdout }}
+            ======================================
+            Filesystem output -
+            {{ fs_out.stdout }}
+            ======================================
+            Fstab Entries -
+            {{ fstab_out.stdout }}
+            ======================================
+            Running services - 
+            {{ service_out.stdout }}
+            ======================================
+            Swap information - 
+            {{ swap_out.stdout }}
+            ======================================
+            Memory information - 
+            {{ mem_out.stdout }}
+            ======================================
+            Network Setting :-
+            IP - 
+            {{ ip_out.stdout }}
+            --------------------------------------
+            Netstat - 
+            {{ netstat_out.stdout }}
+      delegate_to: localhost
