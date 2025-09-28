@@ -1,16 +1,18 @@
 ---
 - name: Patching the existing packages to the latest version
   hosts: all
-  become: yes
-  vars_files: 
+  become: true
+  vars_files:
     - creds
-  tasks:
+  pre_tasks:
     - name: Check the register with Redhat Subscription
-      shell: subscription-manager status
+      ansible.builtin.command: subscription-manager status
       register: sub_status
-      ignore_errors: yes
+      changed_when: true
+      ignore_errors: true
 
-    - debug:
+    - name: Subscription check
+      ansible.builtin.debug:
         msg: "Server already registered with Redhat subscription"
       when: sub_status.rc == 0
 
@@ -21,6 +23,36 @@
       register: reg_status
       when: sub_status.rc != 0
 
-    - debug:
+    - name: Subscription check
+      ansible.builtin.debug:
         var: reg_status.msg
       when: sub_status.rc != 0
+
+  tasks:
+    - name: Fetch the available updates
+      ansible.builtin.yum:
+        list: updates
+        update_cache: true
+      register: check_out
+
+    - name: Check list
+      ansible.builtin.debug:
+        msg: "{{ check_out.results | map(attribute='name') | list }}"
+
+    - name: Apply patches
+      ansible.builtin.yum:
+        name: '*'
+        state: latest
+      register: patch_out
+
+    - name: Patching output
+      ansible.builtin.debug:
+        var: patch_out.results
+
+    - name: Reboot the machine
+      ansible.builtin.reboot:
+        polls: 5
+        retries: 10
+        #reboot_timeout: 90
+        #test_command: uptime
+      tags: reboot_out
